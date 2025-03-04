@@ -6,6 +6,20 @@ build/
 dist/
 wheels/
 *.egg-info
+# Env
+.env
+.env.*
 
 # Virtual environments
 .venv
+env
+
+node_modules
+# Output
+.output
+.vercel
+.svelte-kit
+
+# OS
+.DS_Store
+Thumbs.db
