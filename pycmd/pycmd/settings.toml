@@ -1,0 +1,10 @@
+[app]
+    logger_enabled = false
+    verbose = false
+
+[resources]
+    [resources.data]
+    path_dir = "$PROJECT_MODULES/data"
+
+    [resources.assigns]
+    path_dir = "$PROJECT_MODULES/data/assigns"

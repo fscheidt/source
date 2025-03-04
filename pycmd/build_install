@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+STEP=$(tput setaf 5) # magenta
+DONE=$(tput setaf 190) # lime
+WARN=$(tput setaf 215) # yellow
+S=$(tput sgr0)
+
+# =============================
+PACKAGE_NAME="pycmd"
+# =============================
+
+DIST_DIR="dist"
+
+set -e
+error_exit() {
+    echo "Error: $1" >&2
+    exit 1
+}
+if [ -z "$PACKAGE_NAME" ]; then
+    error_exit "PACKAGE_NAME is not defined. Please set it to your package name."
+fi
+
+if [ -n "$VIRTUAL_ENV" ] && [[ "$VIRTUAL_ENV" == *"poetry"* ]]; then
+    echo "Poetry shell is activated!"
+    echo "${WARN}Deactivate poetry shell first to run this script.${S}"
+    exit 1
+fi
+
+echo "${STEP}[1] Uninstalling any previously installed version of $PACKAGE_NAME...${S}"
+if pip show "$PACKAGE_NAME" &>/dev/null; then
+    printf "%s\n"   "========================================"
+    printf "%s\n"   "pip uninstall -y $PACKAGE_NAME"
+    printf "%s\n\n" "========================================"
+    pip uninstall -y "$PACKAGE_NAME" || error_exit "Failed to uninstall $PACKAGE_NAME."
+    echo "Successfully uninstalled $PACKAGE_NAME."
+else
+    echo "No existing installation of $PACKAGE_NAME found."
+fi
+
+echo "${STEP}[2] Removing any previous builds from $DIST_DIR... ${S}"
+if [ -d "$DIST_DIR" ]; then
+    printf "%s\n"   "========================================"
+    printf "%s\n"   "rm -rf $DIST_DIR"
+    printf "%s\n\n" "========================================"
+    rm -rf "$DIST_DIR" || error_exit "Failed to remove previous builds from $DIST_DIR."
+    echo "Previous builds removed successfully."
+else
+    echo "No $DIST_DIR directory found; skipping clean-up."
+fi
+
+echo "${STEP}[3] Building the project with Poetry... ${S}"
+if ! command -v poetry &>/dev/null; then
+    error_exit "Poetry is not installed. Please install it and try again."
+fi
+poetry build || error_exit "Failed to build the project with Poetry."
+
+echo "${STEP}[4] Locate the .whl file in the $DIST_DIR folder ${S}"
+if [ ! -d "$DIST_DIR" ]; then
+    error_exit "'$DIST_DIR' directory not found. Ensure 'poetry build' ran correctly."
+fi
+
+WHEEL_FILE=$(find "$DIST_DIR" -maxdepth 1 -type f -name "*.whl" | head -n 1)
+if [ -z "$WHEEL_FILE" ]; then
+    error_exit "No .whl files found in '$DIST_DIR' directory."
+fi
+
+echo "Found wheel file: $WHEEL_FILE"
+
+echo "${STEP}[5] Install the package using pip --user ${S}"
+echo "Installing the package with pip..."
+if ! command -v pip &>/dev/null; then
+    error_exit "pip is not installed. Please install it and try again."
+fi
+
+pip install --user "$WHEEL_FILE" || error_exit "Failed to install the package with pip."
+
+echo "${STEP}[6] Install bash autocompletion ${S}"
+poetry run xc --install-completion
+
+echo "${DONE}Installation completed. ${S}"
